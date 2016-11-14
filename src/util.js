@@ -93,7 +93,10 @@ exports.getLineAndColumn = function(str, offset) {
 
 // Return a nicely-formatted string describing the line and column for the
 // given offset in `str`.
-exports.getLineAndColumnMessage = function(str, offset /* ...ranges */) {
+
+exports.getOptionalLineAndColumnMessage = function(str, offset, includeLineNumbers /* ranges */) {
+
+  var _includeLineNumbers = typeof includeLineNumbers !== 'undefined' ? includeLineNumbers : true;
   var repeatStr = common.repeatStr;
 
   var lineAndCol = exports.getLineAndColumn(str, offset);
@@ -109,7 +112,11 @@ exports.getLineAndColumnMessage = function(str, offset /* ...ranges */) {
 
   // Helper for appending formatting input lines to the buffer.
   function appendLine(num, content, prefix) {
-    sb.append(prefix + lineNumbers[num] + ' | ' + content + '\n');
+    if (_includeLineNumbers) {
+      sb.append(prefix + lineNumbers[num] + ' | ' + content + '\n');
+    } else {
+      sb.append('  ' + content + '\n');
+    }
   }
 
   // Include the previous line for context if possible.
@@ -123,7 +130,7 @@ exports.getLineAndColumnMessage = function(str, offset /* ...ranges */) {
   // Start with a blank line, and indicate each range by overlaying a string of `~` chars.
   var lineLen = lineAndCol.line.length;
   var indicationLine = repeatStr(' ', lineLen + 1);
-  var ranges = Array.prototype.slice.call(arguments, 2);
+  var ranges = Array.prototype.slice.call(arguments, 3);
   for (var i = 0; i < ranges.length; ++i) {
     var startIdx = ranges[i][0];
     var endIdx = ranges[i][1];
@@ -135,7 +142,7 @@ exports.getLineAndColumnMessage = function(str, offset /* ...ranges */) {
 
     indicationLine = strcpy(indicationLine, repeatStr('~', endIdx - startIdx), startIdx);
   }
-  var gutterWidth = 2 + lineNumbers[1].length + 3;
+  var gutterWidth = _includeLineNumbers ? 2 + lineNumbers[1].length + 3 : 2;
   sb.append(repeatStr(' ', gutterWidth));
   indicationLine = strcpy(indicationLine, '^', lineAndCol.colNum - 1);
   sb.append(indicationLine.replace(/ +$/, '') + '\n');
@@ -145,4 +152,10 @@ exports.getLineAndColumnMessage = function(str, offset /* ...ranges */) {
     appendLine(2, lineAndCol.nextLine, '  ');
   }
   return sb.contents();
+};
+
+exports.getLineAndColumnMessage = function(str, offset /* ...ranges */) {
+  var args = Array.prototype.slice.call(arguments);
+  args.splice(2, 0, true);
+  return exports.getOptionalLineAndColumnMessage.apply(this, args);
 };

@@ -171,6 +171,31 @@ MatchFailure.prototype.getRightmostFailures = function() {
   return this._failures;
 };
 
+MatchFailure.prototype.getMessage = function(config) {
+  var source = this.state.inputStream.source;
+  if (typeof source !== 'string') {
+    return 'match failed at position ' + this.getRightmostFailurePosition();
+  }
+  var detail = 'Expected ' + this.getExpectedText();
+
+  // use default values if not defined
+  var includeSource = typeof config !== 'undefined' &&
+    typeof config.includeSource !== 'undefined' ?
+      config.includeSource : true;
+  var includeLineNumbers = typeof config !== 'undefined' &&
+    typeof config.includeLineNumbers !== 'undefined' ?
+      config.includeLineNumbers : true;
+
+  if (!includeSource) {
+    return getShortMatchErrorMessage(
+        this.getRightmostFailurePosition(),
+        this.state.inputStream.source,
+        detail);
+  }
+  return util.getOptionalLineAndColumnMessage(
+      source, this.getRightmostFailurePosition(), includeLineNumbers) + detail;
+};
+
 // Return a string summarizing the expected contents of the input stream when
 // the match failure occurred.
 MatchFailure.prototype.getExpectedText = function() {
